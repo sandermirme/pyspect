@@ -79,7 +79,7 @@ class RecordsFiles:
     num_electrometers: Union[None, int]
     electrometer_names: Union[None, list[str]]
     electrometer_groups: Union[None, dict[str, list[int]]]
-    spectra_by_hash: dict[str, SpectraData]
+    spectra: list[SpectraData]
 
     def __init__(self, auto_parse_time=True):
         self.size = 0
@@ -108,7 +108,7 @@ class RecordsFiles:
         self.electrometer_names = None
         self.electrometer_groups = None
 
-        self.spectra_by_hash = {}
+        self.spectra = []
 
         self.warnings = []
 
@@ -145,6 +145,9 @@ class RecordsFiles:
 
             if linereader is not None:
                 linereader(line_number, line)
+
+    def count(self) -> int:
+        return len(self.begin_time_str)
 
     def make_reader(self, lines: list[str]) -> Union[Callable[[int, str], None], None]:
         if lines[0] not in ["# Spectops records\n", "# Spectops spectra\n"]:
@@ -255,12 +258,14 @@ class RecordsFiles:
 
         for spectra_info in header['spectra']:
             spectrum_hash = spectra_info['hash']
-            try:
-                spectra.append(self.spectra_by_hash[spectrum_hash])
-            except KeyError:
+            for s in self.spectra:
+                if s.hash == spectrum_hash:
+                    spectra.append(s)
+                    break
+            else:
                 spectrum_data = init_spectrum_data(spectra_info)
                 spectra.append(spectrum_data)
-                self.spectra_by_hash[spectrum_hash] = spectrum_data
+                self.spectra.append(spectrum_data)
 
         row_size = 3 + sum(s.xsize * 2 for s in spectra)
 
