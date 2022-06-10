@@ -39,8 +39,8 @@ for i in range(data.count()):
     spectrum_index = bisect.bisect_left(spectrum.begin_time, data.begin_time[i])
     if spectrum_index != len(spectrum.begin_time) and spectrum.begin_time[spectrum_index] == data.begin_time[i]:
         orig_spect = np.asarray(spectrum.value[spectrum_index])
-        # for j in range(len(orig_spect)):
-        #     print(f"{j:3} {orig_spect[j]:6.2f} {reinv_value[j]:6.2f}")
-        # input()
+        for j in range(len(orig_spect)):
+            print(f"{j:3} {orig_spect[j]:6.2f} {reinv_value[j]:6.2f}")
+        print(f"sum {orig_spect.sum():6.2f} {reinv_value.sum():6.2f}")
 
-        print(f"{orig_spect.sum()} {reinv_value.sum()}")
+        input()

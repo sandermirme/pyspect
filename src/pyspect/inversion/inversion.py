@@ -168,8 +168,6 @@ class Inverter:
             if isnan(v):
                 in_sig[i] = 0.0
                 in_var[i] = 10000000000.0
-            elif v < 0.0:
-                in_var[i] += v * v
 
         # print "Initial:"
         values, variances, vparand = self.subinvert(self.instrument_matrix, in_sig, in_var)
