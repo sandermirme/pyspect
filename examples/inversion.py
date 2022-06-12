@@ -29,6 +29,9 @@ for i in range(data.count()):
     if opmode not in inverters:
         continue
 
+    begin_time = data.begin_time[i]
+    end_time = data.end_time[i]
+
     for polarity, inverter in inverters[opmode]:
         em_range_begin, em_range_end = data.electrometer_groups[polarity]
 
@@ -38,4 +41,4 @@ for i in range(data.count()):
         reinv_distribution, reinv_distribution_cov = inverter.invert(current, current_variance)
 
         # Do something with the result. Now just prints first 5 nd points
-        print(f"{opmode} {polarity} {reinv_distribution[:5]}")
+        print(f"{begin_time} {end_time} {opmode} {polarity} {reinv_distribution[:5]}")
