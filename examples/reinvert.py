@@ -1,4 +1,5 @@
 import bisect
+import math
 import pathlib
 import sys
 
@@ -32,15 +33,15 @@ for i in range(data.count()):
         continue
 
     current = data.current[i][em_range_begin:em_range_end + 1]
-    variance = data.current_variance[i][em_range_begin:em_range_end + 1]
+    current_variance = data.current_variance[i][em_range_begin:em_range_end + 1]
 
-    reinv_value, reinv_cov = inverter.invert(current, variance)
+    reinv_distribution, reinv_distribution_cov = inverter.invert(current, current_variance)
 
     spectrum_index = bisect.bisect_left(spectrum.begin_time, data.begin_time[i])
     if spectrum_index != len(spectrum.begin_time) and spectrum.begin_time[spectrum_index] == data.begin_time[i]:
-        orig_spect = np.asarray(spectrum.value[spectrum_index])
-        for j in range(len(orig_spect)):
-            print(f"{j:3} {orig_spect[j]:6.2f} {reinv_value[j]:6.2f}")
-        print(f"sum {orig_spect.sum():6.2f} {reinv_value.sum():6.2f}")
+        orig_distribution = np.asarray(spectrum.value[spectrum_index])
 
-        input()
+        sqdiff = math.sqrt(((orig_distribution - reinv_distribution) ** 2).mean())
+        relsum = orig_distribution.sum() / reinv_distribution.sum()
+
+        print(f"{i:5} {data.begin_time[i]} {sqdiff:9.6f} {relsum:9.6f}")

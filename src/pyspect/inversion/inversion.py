@@ -1,10 +1,10 @@
 import copy
 from math import cos, pi, isnan, sqrt
-from typing import Any, Union
+from typing import Union
 
 import numpy
 import numpy as np
-import numpy.linalg as linalg
+import scipy.linalg
 import yaml
 
 from .. import millikan
@@ -48,7 +48,6 @@ class Inverter:
 
         self._cached_smoothing_opts = None
         self._cached_regul_smoothing_opts = None
-
 
     def print_opts(self, ):
         names = ['neg_remove_coef', 'neg_remove_iterations', 'initial_regul_coef',
@@ -109,7 +108,7 @@ class Inverter:
             for i in range(outputs):
                 V[i, i] *= (1.0 + self.initial_regul_coef)
 
-            Vcainv = linalg.inv(V)
+            Vcainv = scipy.linalg.inv(V)
 
             V = Vorig.copy()
 
@@ -143,9 +142,10 @@ class Inverter:
             origoutputs = self.instrument_matrix.shape[1]
             for i in range(outputs):
                 for j in range(outputs):
-                    V[i, j] /= 1 + sqrt(vparand[i] * vparand[j]) / origoutputs
+                    if i != j:
+                        V[i, j] /= 1 + sqrt(vparand[i] * vparand[j]) / origoutputs
 
-        Vcinv = linalg.inv(V)
+        Vcinv = scipy.linalg.inv(V)
 
         intermResult = np.dot(Vcinv, Wy)
 
@@ -247,7 +247,7 @@ def make_smoothing_matrix(size, coef):
 
     def vc(ind):
         ind = abs(ind)
-        if ind >= icoef:
+        if ind > icoef:
             return 0.0
         else:
             return v[ind]
