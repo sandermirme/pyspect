@@ -222,11 +222,7 @@ class Inverter:
         return result_values, result_covariances
 
 
-def make_smoothing_matrix(size, coef):
-    """
-    :type size: int
-    :type coef: float
-    """
+def make_smoothing_matrix(size: int, coef: float):
     sm = np.zeros((size, size))
 
     coef += 1.0
