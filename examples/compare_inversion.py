@@ -5,6 +5,7 @@ import sys
 
 import numpy as np
 
+# Add library search path relative to the examples directory
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "../src"))
 
 import pyspect.inversion
