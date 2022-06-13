@@ -15,10 +15,10 @@ inverter = pyspect.inversion.load_inverter(
     open("inverters/v14.1-hrnd-elm25-chv/ions-pos-v14.1-hrnd-elm25-chv.inverter"))
 
 data = pyspect.datafiles.RecordsFiles()
-data.load("dataorig/20220524-block.records")
+data.load("data/20220524-block.records")
 
 spectra_data = pyspect.datafiles.RecordsFiles()
-spectra_data.load("dataorig/20220524-block-ions.spectra")
+spectra_data.load("data/20220524-block-ions.spectra")
 
 for s in spectra_data.spectra:
     if s.name == "ions pos":
