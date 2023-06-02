@@ -8,8 +8,8 @@ import numpy as np
 # Add library search path relative to the examples directory
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "../src"))
 
-import pyspect.inversion
-import pyspect.datafiles
+from airel import pyspect
+import airel.pyspect.datafiles
 
 inverter = pyspect.inversion.load_inverter(
     open("inverters/v14.1-hrnd-elm25-chv/ions-pos-v14.1-hrnd-elm25-chv.inverter"))

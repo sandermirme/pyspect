@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "airel.pyspect"
+version = "1.0.0"
+authors = [
+    { name = "Airel OÜ", email = "info@airel.ee" },
+]
+description = "A Python package to help with processing data from NAIS, EAS, CIC and other instruments produced by Airel OÜ"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy>=1.22.0",
+    "PyYAML>=6.0",
+    "scipy>=1.8.0",
+]
+
+[optional-dependencies]
+pandas = ["pandas>=1.4.0"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/examples",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/airel"]
