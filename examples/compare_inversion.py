@@ -9,7 +9,6 @@ import numpy as np
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "../src"))
 
 from airel import pyspect
-import airel.pyspect.datafiles
 
 inverter = pyspect.inversion.load_inverter(
     open("inverters/v14.1-hrnd-elm25-chv/ions-pos-v14.1-hrnd-elm25-chv.inverter"))
