@@ -146,7 +146,7 @@ class RecordsFiles:
                     self.warnings.append((sourcefile, line_number, 'Header ended unexpectedly'))
                     header_lines.append("")
 
-                linereader = self.make_reader(header_lines)
+                linereader = self._make_reader(header_lines)
                 header_lines = []
                 continue
 
@@ -156,7 +156,7 @@ class RecordsFiles:
     def count(self) -> int:
         return len(self.begin_time_str)
 
-    def make_reader(self, lines: list[str]) -> Union[Callable[[int, str], None], None]:
+    def _make_reader(self, lines: list[str]) -> Union[Callable[[int, str], None], None]:
         if lines[0] not in ["# Spectops records\n", "# Spectops spectra\n"]:
             raise ParsingError(f'Unknown file: {lines}')
 
@@ -166,13 +166,13 @@ class RecordsFiles:
         file_type = header['file type']
 
         if file_type == 'records':
-            return self.make_records_reader(header)
+            return self._make_records_reader(header)
         elif file_type == 'spectra':
-            return self.make_spectra_reader(header)
+            return self._make_spectra_reader(header)
         else:
             return None
 
-    def add_field(self, name, human_name, unit):
+    def _add_field(self, name, human_name, unit):
         field = Field(
             size=1,
             name=name,
@@ -185,7 +185,7 @@ class RecordsFiles:
         self.field_ids.append(name)
         return data
 
-    def make_records_reader(self, header: dict[str, Any]) -> Union[Callable[[int, str], None], None]:
+    def _make_records_reader(self, header: dict[str, Any]) -> Union[Callable[[int, str], None], None]:
         flag_map: dict[str, int] = {}
 
         self.opmode_set.update(header['opmodes'])
@@ -206,7 +206,7 @@ class RecordsFiles:
             name = field_dict['name']
             missing_fields.discard(name)
             if name not in self.field_definitions:
-                data = self.add_field(name=name, human_name=field_dict['humanname'], unit=field_dict['unit'])
+                data = self._add_field(name=name, human_name=field_dict['humanname'], unit=field_dict['unit'])
             else:
                 data = self.field_data[name]
             file_field_data.append(data)
@@ -258,7 +258,7 @@ class RecordsFiles:
 
         return reader
 
-    def make_spectra_reader(self, header: dict[str, Any]) -> Union[Callable[[int, str], None], None]:
+    def _make_spectra_reader(self, header: dict[str, Any]) -> Union[Callable[[int, str], None], None]:
         self.opmode_set.update(header['opmodes'])
 
         spectra = []
