@@ -10,6 +10,7 @@ import numpy as np
 import yaml
 
 from .util import float_or_missing, parse_spectops_time
+from ..fractions import nd_fraction_matrix
 
 try:
     import pandas as pd
@@ -56,6 +57,12 @@ class SpectraData:
     value: list[list[float]] = dataclasses.field(default_factory=list)
     variance: list[list[float]] = dataclasses.field(default_factory=list)
     opmode: list[str] = dataclasses.field(default_factory=list)
+
+    def fraction_concentration(self, limits):
+        matrix = nd_fraction_matrix(xpoints=self.xpoints, limits=limits)
+        fract_data = np.dot(self.value, matrix)
+
+        return fract_data
 
 
 class RecordsFiles:
