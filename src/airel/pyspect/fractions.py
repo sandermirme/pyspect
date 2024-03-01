@@ -5,15 +5,22 @@ import numpy as np
 import numpy.typing as npt
 
 
-def nd_fraction_matrix(xpoints: npt.ArrayLike, limits: tuple[Union[None, float], Union[None, float]]) -> npt.ArrayLike:
+def nd_fraction_matrix(
+    xpoints: npt.ArrayLike, limits: tuple[Union[None, float], Union[None, float]]
+) -> npt.ArrayLike:
     log_xpoints = np.log10(xpoints)
     lowlim, uplim = limits
-    log_limits = (None if lowlim is None else math.log10(lowlim), None if uplim is None else math.log10(uplim))
+    log_limits = (
+        None if lowlim is None else math.log10(lowlim),
+        None if uplim is None else math.log10(uplim),
+    )
     return nd_fraction_matrix_log(log_xpoints, log_limits)
 
 
-def nd_fraction_matrix_log(log_xpoints: npt.ArrayLike,
-                           log_limits: tuple[Union[None, float], Union[None, float]]) -> npt.ArrayLike:
+def nd_fraction_matrix_log(
+    log_xpoints: npt.ArrayLike,
+    log_limits: tuple[Union[None, float], Union[None, float]],
+) -> npt.ArrayLike:
     is_reversed = log_xpoints[0] > log_xpoints[-1]
     npoints = len(log_xpoints)
 

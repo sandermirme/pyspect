@@ -15,18 +15,19 @@ def fmt(a, f="5.2f"):
     return " ".join(fm.format(x) for x in a)
 
 
-class InversionException(Exception): pass
+class InversionException(Exception):
+    pass
 
 
 _INVERTER_ATTRIBUTES = [
-    ('initial_regul_coef', float),
-    ('next_regul_coef', float),
-    ('neg_remove_iterations', int),
-    ('neg_remove_coef', float),
-    ('smoothing_coef', float),
-    ('regul_smoothing_coef', float),
-    ('regul_off_diag_correction', bool),
-    ('regul_limit', float),
+    ("initial_regul_coef", float),
+    ("next_regul_coef", float),
+    ("neg_remove_iterations", int),
+    ("neg_remove_coef", float),
+    ("smoothing_coef", float),
+    ("regul_smoothing_coef", float),
+    ("regul_off_diag_correction", bool),
+    ("regul_limit", float),
 ]
 
 
@@ -49,9 +50,18 @@ class Inverter:
         self._cached_smoothing_opts = None
         self._cached_regul_smoothing_opts = None
 
-    def print_opts(self, ):
-        names = ['neg_remove_coef', 'neg_remove_iterations', 'initial_regul_coef',
-                 'next_regul_coef', 'regul_limit', 'regul_off_diag_correction', 'regul_smoothing_coef']
+    def print_opts(
+        self,
+    ):
+        names = [
+            "neg_remove_coef",
+            "neg_remove_iterations",
+            "initial_regul_coef",
+            "next_regul_coef",
+            "regul_limit",
+            "regul_off_diag_correction",
+            "regul_smoothing_coef",
+        ]
 
         for n in names:
             print("inv.{} = {}".format(n, repr(getattr(self, n))))
@@ -67,8 +77,13 @@ class Inverter:
             self.regul_smoothing_matrix = make_smoothing_matrix(*opts)
             self._cached_regul_smoothing_opts = opts
 
-    def subinvert(self, instrument_matrix: numpy.ndarray, signal: numpy.ndarray, variance: numpy.ndarray,
-                  vparand: Union[None, numpy.ndarray] = None):
+    def subinvert(
+        self,
+        instrument_matrix: numpy.ndarray,
+        signal: numpy.ndarray,
+        variance: numpy.ndarray,
+        vparand: Union[None, numpy.ndarray] = None,
+    ):
 
         H = instrument_matrix
 
@@ -79,7 +94,9 @@ class Inverter:
         outputs = H.shape[1]
 
         if inputs != variance.size:
-            raise InversionException("Instrument matrix does not match variance vector size")
+            raise InversionException(
+                "Instrument matrix does not match variance vector size"
+            )
 
         Dinv = np.zeros((inputs, inputs))
 
@@ -100,13 +117,15 @@ class Inverter:
         V = Vorig.copy()
 
         if inputs != len(signal):
-            raise InversionException("Instrument matrix does not match record vector size")
+            raise InversionException(
+                "Instrument matrix does not match record vector size"
+            )
 
         Wy = np.dot(W, signal)
 
         if vparand is None:
             for i in range(outputs):
-                V[i, i] *= (1.0 + self.initial_regul_coef)
+                V[i, i] *= 1.0 + self.initial_regul_coef
 
             Vcainv = scipy.linalg.inv(V)
 
@@ -136,7 +155,7 @@ class Inverter:
                 vparand = np.dot(vparand, self.regul_smoothing_matrix)
 
         for i in range(outputs):
-            V[i, i] *= (1.0 + vparand[i])
+            V[i, i] *= 1.0 + vparand[i]
 
         if self.regul_off_diag_correction:
             origoutputs = self.instrument_matrix.shape[1]
@@ -151,7 +170,9 @@ class Inverter:
 
         return intermResult, Vcinv, vparand
 
-    def invert(self, in_sig: numpy.ndarray, in_var: numpy.ndarray) -> (numpy.ndarray, numpy.ndarray):
+    def invert(
+        self, in_sig: numpy.ndarray, in_var: numpy.ndarray
+    ) -> (numpy.ndarray, numpy.ndarray):
         self.prepare()
 
         in_sig = np.array(in_sig, copy=True)
@@ -161,7 +182,9 @@ class Inverter:
         num_out = self.instrument_matrix.shape[1]
 
         if (num_in != in_sig.size) or (num_in != in_var.size):
-            raise InversionException("Instrument matrix does not match signal vector size")
+            raise InversionException(
+                "Instrument matrix does not match signal vector size"
+            )
 
         for i in range(num_in):
             v = in_sig[i]
@@ -170,7 +193,9 @@ class Inverter:
                 in_var[i] = 10000000000.0
 
         # print "Initial:"
-        values, variances, vparand = self.subinvert(self.instrument_matrix, in_sig, in_var)
+        values, variances, vparand = self.subinvert(
+            self.instrument_matrix, in_sig, in_var
+        )
 
         # concsum = init_values.sum()
         # totConcWeights = np.empty()
@@ -186,7 +211,8 @@ class Inverter:
             # print "Iteration: {}".format(nriter)
             minind = np.argmin(it_values)
 
-            if it_values[minind] >= 0.0: break
+            if it_values[minind] >= 0.0:
+                break
 
             absminind = indexmap[minind]
             del indexmap[minind]
@@ -194,7 +220,9 @@ class Inverter:
             it_instrument_matrix = instrument_matrix[:, indexmap]
             it_vparand = vparand[indexmap]
 
-            it_values, it_variances, tmpvparand = self.subinvert(it_instrument_matrix, in_sig, in_var, it_vparand)
+            it_values, it_variances, tmpvparand = self.subinvert(
+                it_instrument_matrix, in_sig, in_var, it_vparand
+            )
 
             values[absminind] = 0.0
             values[indexmap] = it_values
@@ -206,10 +234,14 @@ class Inverter:
 
         if self.post_matrix is not None:
             if self.post_matrix.shape[0] != len(values):
-                raise InversionException("Post-transform matrix size does not match intermediate vector size")
+                raise InversionException(
+                    "Post-transform matrix size does not match intermediate vector size"
+                )
 
             result_values = np.dot(values, self.post_matrix)
-            result_covariances = np.dot(self.post_matrix.T, np.dot(variances, self.post_matrix))
+            result_covariances = np.dot(
+                self.post_matrix.T, np.dot(variances, self.post_matrix)
+            )
 
         else:
             result_values = values
@@ -217,7 +249,9 @@ class Inverter:
 
         if self.smoothing_coef > 0.0:
             result_values = np.dot(result_values, self.smoothing_matrix)
-            result_covariances = np.dot(self.smoothing_matrix, np.dot(result_covariances, self.smoothing_matrix))
+            result_covariances = np.dot(
+                self.smoothing_matrix, np.dot(result_covariances, self.smoothing_matrix)
+            )
 
         return result_values, result_covariances
 
@@ -255,43 +289,49 @@ def make_smoothing_matrix(size: int, coef: float):
     return sm
 
 
-def save_inverter(outfilename, spectrum_name, model_parameters, inverter_options, model_result):
-    matrix_mult = model_parameters['matrix_mult']
+def save_inverter(
+    outfilename, spectrum_name, model_parameters, inverter_options, model_result
+):
+    matrix_mult = model_parameters["matrix_mult"]
 
-    if model_parameters['ion_mode']:
+    if model_parameters["ion_mode"]:
         invtype = "mobility"
         invunit = "cm^2/s/V"
     else:
         invtype = "radius"
         invunit = "nm"
 
-    instrument_matrix = model_result['instrument_matrix']
-    elsp_nd_matrix = model_result['elsp_nd_matrix'].T
-    nd_sizes = model_result['nd_sizes']
+    instrument_matrix = model_result["instrument_matrix"]
+    elsp_nd_matrix = model_result["elsp_nd_matrix"].T
+    nd_sizes = model_result["nd_sizes"]
 
     model_parameters = copy.deepcopy(model_parameters)
     all_ndarray_tolist(model_parameters)
 
-    doc = {"name": spectrum_name,
-           "instrument": {
-               "rows": instrument_matrix.shape[0],
-               "cols": instrument_matrix.shape[1],
-               "mult": matrix_mult,
-               "data": (instrument_matrix * matrix_mult).tolist()},
-           "posttransform": {
-               "rows": elsp_nd_matrix.shape[0],
-               "cols": elsp_nd_matrix.shape[1],
-               "data": elsp_nd_matrix.tolist()},
-           "xpoints": {
-               "type": invtype,
-               "unit": invunit,
-               "points": (nd_sizes / model_parameters['scaling']).tolist()},
-           "yunit": "1/cm^3",
-           "model_parameters": model_parameters,
-           }
+    doc = {
+        "name": spectrum_name,
+        "instrument": {
+            "rows": instrument_matrix.shape[0],
+            "cols": instrument_matrix.shape[1],
+            "mult": matrix_mult,
+            "data": (instrument_matrix * matrix_mult).tolist(),
+        },
+        "posttransform": {
+            "rows": elsp_nd_matrix.shape[0],
+            "cols": elsp_nd_matrix.shape[1],
+            "data": elsp_nd_matrix.tolist(),
+        },
+        "xpoints": {
+            "type": invtype,
+            "unit": invunit,
+            "points": (nd_sizes / model_parameters["scaling"]).tolist(),
+        },
+        "yunit": "1/cm^3",
+        "model_parameters": model_parameters,
+    }
     doc.update(inverter_options)
 
-    out = open(outfilename, 'w')
+    out = open(outfilename, "w")
     yaml.safe_dump(doc, out, width=300, indent=4)
 
     return doc
@@ -304,23 +344,25 @@ def load_inverter(stream):
         if key in doc:
             setattr(inverter, key, fn(doc[key]))
 
-    inverter.instrument_matrix = np.array(doc['instrument_matrix']['data']) / doc['instrument_matrix']['mult']
-    inverter.post_matrix = np.array(doc['posttransform']['data'])
-    xp = doc['xpoints']
-    xtype = xp['type']
-    inverter.xpoints = np.array(xp['points'])
+    inverter.instrument_matrix = (
+        np.array(doc["instrument_matrix"]["data"]) / doc["instrument_matrix"]["mult"]
+    )
+    inverter.post_matrix = np.array(doc["posttransform"]["data"])
+    xp = doc["xpoints"]
+    xtype = xp["type"]
+    inverter.xpoints = np.array(xp["points"])
     inverter.xtype = xtype
 
     mil = millikan.Millikan()
-    if xtype == 'mobility':
+    if xtype == "mobility":
         inverter.mobilities = inverter.xpoints
         inverter.diameters = mil.ktod(inverter.mobilities / 1e4) * 1e9
-    elif xtype == 'radius':
+    elif xtype == "radius":
         inverter.diameters = inverter.xpoints * 2
         inverter.mobilities = mil.dtok(inverter.diameters / 1e9) * 1e4
 
-    inverter.xunit = xp['unit']
-    inverter.yunit = doc['yunit']
+    inverter.xunit = xp["unit"]
+    inverter.yunit = doc["yunit"]
     return inverter
 
 

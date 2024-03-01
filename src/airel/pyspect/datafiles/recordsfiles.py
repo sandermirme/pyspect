@@ -15,9 +15,9 @@ from ..fractions import nd_fraction_matrix
 try:
     import pandas as pd
 except ModuleNotFoundError:
-    warnings.warn('Pandas not found. Dataframe conversion not available.')
+    warnings.warn("Pandas not found. Dataframe conversion not available.")
 
-nan = float('nan')
+nan = float("nan")
 
 
 class FieldType(Enum):
@@ -128,9 +128,12 @@ class RecordsFiles:
             sourcefile = open(sourcefile)
 
         for line_number, line in enumerate(sourcefile):
-            if line[0] == '#':
-                if line.startswith("# Spectops") or line.startswith("#Only records") or line.startswith(
-                        "#All measured"):
+            if line[0] == "#":
+                if (
+                    line.startswith("# Spectops")
+                    or line.startswith("#Only records")
+                    or line.startswith("#All measured")
+                ):
                     is_in_header = True
                     header_lines = []
 
@@ -143,7 +146,9 @@ class RecordsFiles:
                 if line.startswith("begintime") or line.startswith("begin_time"):
                     header_lines.append(line)
                 else:
-                    self.warnings.append((sourcefile, line_number, 'Header ended unexpectedly'))
+                    self.warnings.append(
+                        (sourcefile, line_number, "Header ended unexpectedly")
+                    )
                     header_lines.append("")
 
                 linereader = self._make_reader(header_lines)
@@ -158,16 +163,16 @@ class RecordsFiles:
 
     def _make_reader(self, lines: list[str]) -> Union[Callable[[int, str], None], None]:
         if lines[0] not in ["# Spectops records\n", "# Spectops spectra\n"]:
-            raise ParsingError(f'Unknown file: {lines}')
+            raise ParsingError(f"Unknown file: {lines}")
 
         yamldoc = "".join(x[2:] for x in lines[1:-1])
 
         header = yaml.safe_load(yamldoc)
-        file_type = header['file type']
+        file_type = header["file type"]
 
-        if file_type == 'records':
+        if file_type == "records":
             return self._make_records_reader(header)
-        elif file_type == 'spectra':
+        elif file_type == "spectra":
             return self._make_spectra_reader(header)
         else:
             return None
@@ -185,28 +190,34 @@ class RecordsFiles:
         self.field_ids.append(name)
         return data
 
-    def _make_records_reader(self, header: dict[str, Any]) -> Union[Callable[[int, str], None], None]:
+    def _make_records_reader(
+        self, header: dict[str, Any]
+    ) -> Union[Callable[[int, str], None], None]:
         flag_map: dict[str, int] = {}
 
-        self.opmode_set.update(header['opmodes'])
+        self.opmode_set.update(header["opmodes"])
 
         if self.electrometer_names is None:
-            self.electrometer_names = header.get('electrometer names', [])
+            self.electrometer_names = header.get("electrometer names", [])
             self.num_electrometers = len(self.electrometer_names)
-            self.electrometer_groups = header.get('electrometer groups', {})
+            self.electrometer_groups = header.get("electrometer groups", {})
         else:
-            if header['electrometer names'] != self.electrometer_names:
-                raise ParsingError('Electrometer names do not match')
+            if header["electrometer names"] != self.electrometer_names:
+                raise ParsingError("Electrometer names do not match")
 
         num_electrometers = self.num_electrometers
 
         missing_fields = set(self.field_ids)
         file_field_data = []
-        for field_dict in header['parameters']:
-            name = field_dict['name']
+        for field_dict in header["parameters"]:
+            name = field_dict["name"]
             missing_fields.discard(name)
             if name not in self.field_definitions:
-                data = self._add_field(name=name, human_name=field_dict['humanname'], unit=field_dict['unit'])
+                data = self._add_field(
+                    name=name,
+                    human_name=field_dict["humanname"],
+                    unit=field_dict["unit"],
+                )
             else:
                 data = self.field_data[name]
             file_field_data.append(data)
@@ -216,9 +227,9 @@ class RecordsFiles:
         row_size = len(file_field_data) + num_electrometers * 4 + 4
 
         def reader(line_number: int, line: str):
-            if line[0] == '#':
-                if line.startswith('# flag'):
-                    fid, part, flag = line[7:].rstrip().partition(': ')
+            if line[0] == "#":
+                if line.startswith("# flag"):
+                    fid, part, flag = line[7:].rstrip().partition(": ")
                     try:
                         index = self.flag_defs.index(flag)
                     except ValueError:
@@ -226,11 +237,13 @@ class RecordsFiles:
                         self.flag_defs.append(flag)
                     flag_map[fid] = index
             else:
-                row_fields = line.rstrip('\n\r').split('\t')
+                row_fields = line.rstrip("\n\r").split("\t")
                 if len(row_fields) != row_size:
                     raise ParsingError(
-                        "Invalid number of fields on row {}. Found {}, expected {}.".format(line_number + 1,
-                                                                                            len(row_fields), row_size))
+                        "Invalid number of fields on row {}. Found {}, expected {}.".format(
+                            line_number + 1, len(row_fields), row_size
+                        )
+                    )
                 self.begin_time_str.append(row_fields[0])
                 self.end_time_str.append(row_fields[1])
                 if self.auto_parse_time:
@@ -238,33 +251,56 @@ class RecordsFiles:
                     self.end_time.append(parse_spectops_time(row_fields[1]))
                 self.opmode.append(row_fields[2])
                 fieldpos = 3
-                self.current.append([float_or_missing(x) for x in row_fields[fieldpos:fieldpos + num_electrometers]])
+                self.current.append(
+                    [
+                        float_or_missing(x)
+                        for x in row_fields[fieldpos : fieldpos + num_electrometers]
+                    ]
+                )
                 fieldpos += num_electrometers
                 self.current_variance.append(
-                    [float_or_missing(x) for x in row_fields[fieldpos:fieldpos + num_electrometers]])
+                    [
+                        float_or_missing(x)
+                        for x in row_fields[fieldpos : fieldpos + num_electrometers]
+                    ]
+                )
                 fieldpos += num_electrometers
                 self.raw_current.append(
-                    [float_or_missing(x) for x in row_fields[fieldpos:fieldpos + num_electrometers]])
+                    [
+                        float_or_missing(x)
+                        for x in row_fields[fieldpos : fieldpos + num_electrometers]
+                    ]
+                )
                 fieldpos += num_electrometers
                 self.electrometer_voltage.append(
-                    [float_or_missing(x) for x in row_fields[fieldpos:fieldpos + num_electrometers]])
+                    [
+                        float_or_missing(x)
+                        for x in row_fields[fieldpos : fieldpos + num_electrometers]
+                    ]
+                )
                 fieldpos += num_electrometers
                 for i in range(num_parameters):
-                    file_field_data[i].append(float_or_missing(row_fields[fieldpos + i]))
+                    file_field_data[i].append(
+                        float_or_missing(row_fields[fieldpos + i])
+                    )
                 fieldpos += num_parameters
-                self.flags.append([flag_map[f] for f in row_fields[fieldpos].split('!') if f])
+                self.flags.append(
+                    [flag_map[f] for f in row_fields[fieldpos].split("!") if f]
+                )
                 for l in missing_field_data:
                     l.append(nan)
 
         return reader
 
-    def _make_spectra_reader(self, header: dict[str, Any]) -> Union[Callable[[int, str], None], None]:
-        self.opmode_set.update(header['opmodes'])
+    def _make_spectra_reader(
+        self, header: dict[str, Any]
+    ) -> Union[Callable[[int, str], None], None]:
+        self.opmode_set.update(header["opmodes"])
 
         spectra = []
 
-        for spectra_info in header['spectra']:
-            spectrum_hash = spectra_info['hash']
+        for spectra_info in header["spectra"]:
+            spectrum_hash = spectra_info["hash"]
             for s in self.spectra:
                 if s.hash == spectrum_hash:
                     spectra.append(s)
@@ -277,22 +313,30 @@ class RecordsFiles:
         row_size = 3 + sum(s.xsize * 2 for s in spectra)
 
         def reader(line_number: int, line: str):
-            if line[0] == '#':
+            if line[0] == "#":
                 return
             else:
-                row_fields = line.rstrip('\n\r').split('\t')
+                row_fields = line.rstrip("\n\r").split("\t")
                 if len(row_fields) != row_size:
                     raise ParsingError(
-                        "Invalid number of fields on row {}. Found {}, expected {}.".format(line_number + 1,
-                                                                                            len(row_fields), row_size))
+                        "Invalid number of fields on row {}. Found {}, expected {}.".format(
+                            line_number + 1, len(row_fields), row_size
+                        )
+                    )
                 begin_time = parse_spectops_time(row_fields[0])
                 end_time = parse_spectops_time(row_fields[1])
                 opmode = row_fields[2]
                 fieldpos = 3
                 for s in spectra:
-                    value = [float_or_missing(x) for x in row_fields[fieldpos:fieldpos + s.xsize]]
+                    value = [
+                        float_or_missing(x)
+                        for x in row_fields[fieldpos : fieldpos + s.xsize]
+                    ]
                     fieldpos += s.xsize
-                    variance = [float_or_missing(x) for x in row_fields[fieldpos:fieldpos + s.xsize]]
+                    variance = [
+                        float_or_missing(x)
+                        for x in row_fields[fieldpos : fieldpos + s.xsize]
+                    ]
                     fieldpos += s.xsize
 
                     s.opmode.append(opmode)
@@ -306,13 +350,24 @@ class RecordsFiles:
     def sort(self):
         """Sort records
 
-        Sort records based on begin_time. Raises RuntimeError when begin_time not parsed."""
+        Sort records based on begin_time. Raises RuntimeError when begin_time not parsed.
+        """
 
-        attrlist = ['begin_time_str', 'end_time_str', 'begin_time', 'end_time', 'opmode', 'current', 'current_variance',
-                    'raw_current', 'electrometer_voltage', 'flags']
+        attrlist = [
+            "begin_time_str",
+            "end_time_str",
+            "begin_time",
+            "end_time",
+            "opmode",
+            "current",
+            "current_variance",
+            "raw_current",
+            "electrometer_voltage",
+            "flags",
+        ]
 
         if self.begin_time is None:
-            raise RuntimeError('Attribute begin_time not present')
+            raise RuntimeError("Attribute begin_time not present")
 
         order = np.argsort(self.begin_time)
 
@@ -321,22 +376,28 @@ class RecordsFiles:
             sortedseq = [seq[i] for i in order]
             setattr(self, attr, sortedseq)
 
-        self.field_data = {name: [seq[i] for i in order] for name, seq in self.field_data.items()}
+        self.field_data = {
+            name: [seq[i] for i in order] for name, seq in self.field_data.items()
+        }
 
     def split_electrometer_groups(self, vect: list[Any]) -> dict[str, list[Any]]:
-        return {n: vect[b:e + 1] for n, (b, e) in self.electrometer_groups.items()}
+        return {n: vect[b : e + 1] for n, (b, e) in self.electrometer_groups.items()}
 
     def get_record(self, i: int) -> dict[str, Any]:
         return {
-            'begin_time_str': self.begin_time_str[i],
-            'end_time_str': self.end_time_str[i],
-            'opmode': self.opmode[i],
-            'current': self.split_electrometer_groups(self.current[i]),
-            'current_variance': self.split_electrometer_groups(self.current_variance[i]),
-            'raw_current': self.split_electrometer_groups(self.raw_current[i]),
-            'electrometer_voltage': self.split_electrometer_groups(self.electrometer_voltage[i]),
-            'flags': [self.flag_defs[fi] for fi in self.flags[i]],
-            'parameters': {n: v[i] for n, v in self.field_data.items()}
+            "begin_time_str": self.begin_time_str[i],
+            "end_time_str": self.end_time_str[i],
+            "opmode": self.opmode[i],
+            "current": self.split_electrometer_groups(self.current[i]),
+            "current_variance": self.split_electrometer_groups(
+                self.current_variance[i]
+            ),
+            "raw_current": self.split_electrometer_groups(self.raw_current[i]),
+            "electrometer_voltage": self.split_electrometer_groups(
+                self.electrometer_voltage[i]
+            ),
+            "flags": [self.flag_defs[fi] for fi in self.flags[i]],
+            "parameters": {n: v[i] for n, v in self.field_data.items()},
         }
 
     def blocks(self):
@@ -355,76 +416,78 @@ class RecordsFiles:
         return blocklist
 
     def write(self, output: IO[str]):
-        output.write('# Spectops records\n')
+        output.write("# Spectops records\n")
 
         header = {
-            'file type': 'records',
-            'opmodes': list(self.opmode_set),
-            'electrometer names': self.electrometer_names,
-            'electrometer groups': self.electrometer_groups,
-            'parameters': [self.field_definitions[k] for k in self.field_ids],
-            'total electrometers': self.num_electrometers
+            "file type": "records",
+            "opmodes": list(self.opmode_set),
+            "electrometer names": self.electrometer_names,
+            "electrometer groups": self.electrometer_groups,
+            "parameters": [self.field_definitions[k] for k in self.field_ids],
+            "total electrometers": self.num_electrometers,
         }
 
-        for line in yaml.safe_dump(header, allow_unicode=True).split('\n'):
-            output.write('# ')
+        for line in yaml.safe_dump(header, allow_unicode=True).split("\n"):
+            output.write("# ")
             output.write(line)
-            output.write('\n')
+            output.write("\n")
 
-        columns = ['begin_time', 'end_time', 'opmode'] + \
-                  ['cur_{}'.format(i) for i in range(self.num_electrometers)] + \
-                  ['curvar_{}'.format(i) for i in range(self.num_electrometers)] + \
-                  ['rawcur_{}'.format(i) for i in range(self.num_electrometers)] + \
-                  ['volt_{}'.format(i) for i in range(self.num_electrometers)] + \
-                  self.field_ids + \
-                  ['flags']
+        columns = (
+            ["begin_time", "end_time", "opmode"]
+            + ["cur_{}".format(i) for i in range(self.num_electrometers)]
+            + ["curvar_{}".format(i) for i in range(self.num_electrometers)]
+            + ["rawcur_{}".format(i) for i in range(self.num_electrometers)]
+            + ["volt_{}".format(i) for i in range(self.num_electrometers)]
+            + self.field_ids
+            + ["flags"]
+        )
 
-        output.write('\t'.join(columns))
-        output.write('\n')
+        output.write("\t".join(columns))
+        output.write("\n")
 
         flagkeys = []
 
         field_data_list = [self.field_data[field_id] for field_id in self.field_ids]
 
         for f in self.flag_defs:
-            digest = hashlib.sha256(f.encode('utf8')).hexdigest()
+            digest = hashlib.sha256(f.encode("utf8")).hexdigest()
 
             for i in range(2, len(digest)):
                 d = digest[:i]
                 if d not in flagkeys:
-                    output.write('# flag {}: {}\n'.format(d, f))
+                    output.write("# flag {}: {}\n".format(d, f))
                     flagkeys.append(d)
                     break
 
         for i in range(len(self.begin_time_str)):
             output.write(self.begin_time_str[i])
-            output.write('\t')
+            output.write("\t")
             output.write(self.end_time_str[i])
-            output.write('\t')
+            output.write("\t")
             output.write(self.opmode[i])
-            output.write('\t')
+            output.write("\t")
 
             for c in self.current[i]:
                 output.write(str(c))
-                output.write('\t')
+                output.write("\t")
             for c in self.current_variance[i]:
                 output.write(str(c))
-                output.write('\t')
+                output.write("\t")
             for c in self.raw_current[i]:
                 output.write(str(c))
-                output.write('\t')
+                output.write("\t")
             for c in self.electrometer_voltage[i]:
                 output.write(str(c))
-                output.write('\t')
+                output.write("\t")
             for pl in field_data_list:
                 output.write(str(pl[i]))
-                output.write('\t')
+                output.write("\t")
 
             for f in self.flags[i]:
-                output.write('!')
+                output.write("!")
                 output.write(flagkeys[f])
 
-            output.write('\n')
+            output.write("\n")
 
     def parse_times(self):
         self.begin_time = [parse_spectops_time(t) for t in self.begin_time_str]
@@ -432,28 +495,35 @@ class RecordsFiles:
 
     def to_dataframe(self):
         all_field_data = {
-            'begin_time': self.begin_time,
-            'end_time': self.end_time,
-            'opmode': pd.Series(self.opmode, dtype="category"),
+            "begin_time": self.begin_time,
+            "end_time": self.end_time,
+            "opmode": pd.Series(self.opmode, dtype="category"),
         }
 
         if self.electrometer_groups:
             groups = self.electrometer_groups
         else:
-            groups = {'': (0, self.num_electrometers)}
+            groups = {"": (0, self.num_electrometers)}
 
         for name, (first, last) in groups.items():
             if len(name) != 0:
-                name += '_'
+                name += "_"
             for i in range(first, last + 1):
-                all_field_data[f'{name}electrometer_current_{i - first}'] = [x[i] for x in self.current]
+                all_field_data[f"{name}electrometer_current_{i - first}"] = [
+                    x[i] for x in self.current
+                ]
             for i in range(first, last + 1):
-                all_field_data[f'{name}electrometer_raw_current_{i - first}'] = [x[i] for x in self.raw_current]
+                all_field_data[f"{name}electrometer_raw_current_{i - first}"] = [
+                    x[i] for x in self.raw_current
+                ]
             for i in range(first, last + 1):
-                all_field_data[f'{name}electrometer_current_variance_{i - first}'] = [x[i] for x in
-                                                                                      self.current_variance]
+                all_field_data[f"{name}electrometer_current_variance_{i - first}"] = [
+                    x[i] for x in self.current_variance
+                ]
             for i in range(first, last + 1):
-                all_field_data[f'{name}electrometer_voltage_{i - first}'] = [x[i] for x in self.electrometer_voltage]
+                all_field_data[f"{name}electrometer_voltage_{i - first}"] = [
+                    x[i] for x in self.electrometer_voltage
+                ]
 
         all_field_data.update(self.field_data)
         return pd.DataFrame.from_dict(all_field_data)
@@ -463,7 +533,9 @@ class ParsingError(Exception):
     pass
 
 
-def read_records_date_range(template: str, begin_date: datetime.date, end_date: datetime.date) -> RecordsFiles:
+def read_records_date_range(
+    template: str, begin_date: datetime.date, end_date: datetime.date
+) -> RecordsFiles:
     """
     Read a range of files for a period of dates. Missing files are ignored.
     :param template: String format template for the files. E.g. "instrument/data/{date:%Y%m%d}-block.records'
@@ -489,26 +561,26 @@ def read_records_date_range(template: str, begin_date: datetime.date, end_date: 
 
 
 def init_spectrum_data(definition: dict[str, Any]) -> SpectraData:
-    xpoints = definition['xpoints']
-    scale = definition['scale']
-    if scale == 'radius':
+    xpoints = definition["xpoints"]
+    scale = definition["scale"]
+    if scale == "radius":
         xpoints = [x * 2 for x in xpoints]
         scale_enum = SpectrumScale.DIAMETER
-    elif scale == 'diameter':
+    elif scale == "diameter":
         scale_enum = SpectrumScale.DIAMETER
-    elif scale == 'mobility':
+    elif scale == "mobility":
         scale_enum = SpectrumScale.MOBILITY
     else:
         raise ParsingError(f'Unknonw spectrum scale: "{scale}"')
 
     sd = SpectraData(
-        name=definition['name'],
-        inverter_name=definition['inverter_name'],
+        name=definition["name"],
+        inverter_name=definition["inverter_name"],
         scale=scale_enum,
         xpoints=xpoints,
-        xunit=definition['xunit'],
-        yunit=definition['yunit'],
-        hash=definition['hash'],
+        xunit=definition["xunit"],
+        yunit=definition["yunit"],
+        hash=definition["hash"],
         xsize=len(xpoints),
     )
 

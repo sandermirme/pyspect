@@ -8,17 +8,41 @@ from airel import pyspect
 
 inverters = {
     "ions": [
-        ("pos", pyspect.inversion.load_inverter(
-            open("inverters/v14.1-hrnd-elm25-chv/ions-pos-v14.1-hrnd-elm25-chv.inverter"))),
-        ("neg", pyspect.inversion.load_inverter(
-            open("inverters/v14.1-hrnd-elm25-chv/ions-neg-v14.1-hrnd-elm25-chv.inverter")))
+        (
+            "pos",
+            pyspect.inversion.load_inverter(
+                open(
+                    "inverters/v14.1-hrnd-elm25-chv/ions-pos-v14.1-hrnd-elm25-chv.inverter"
+                )
+            ),
+        ),
+        (
+            "neg",
+            pyspect.inversion.load_inverter(
+                open(
+                    "inverters/v14.1-hrnd-elm25-chv/ions-neg-v14.1-hrnd-elm25-chv.inverter"
+                )
+            ),
+        ),
     ],
     "particles": [
-        ("pos", pyspect.inversion.load_inverter(
-            open("inverters/v14.1-hrnd-elm25-chv/particles-pos-v14-hrnd-elm25-chv.inverter"))),
-        ("neg", pyspect.inversion.load_inverter(
-            open("inverters/v14.1-hrnd-elm25-chv/particles-neg-v14-hrnd-elm25-chv.inverter")))
-    ]
+        (
+            "pos",
+            pyspect.inversion.load_inverter(
+                open(
+                    "inverters/v14.1-hrnd-elm25-chv/particles-pos-v14-hrnd-elm25-chv.inverter"
+                )
+            ),
+        ),
+        (
+            "neg",
+            pyspect.inversion.load_inverter(
+                open(
+                    "inverters/v14.1-hrnd-elm25-chv/particles-neg-v14-hrnd-elm25-chv.inverter"
+                )
+            ),
+        ),
+    ],
 }
 
 data = pyspect.datafiles.RecordsFiles()
@@ -35,10 +59,12 @@ for i in range(data.count()):
     for polarity, inverter in inverters[opmode]:
         em_range_begin, em_range_end = data.electrometer_groups[polarity]
 
-        current = data.current[i][em_range_begin:em_range_end + 1]
-        current_variance = data.current_variance[i][em_range_begin:em_range_end + 1]
+        current = data.current[i][em_range_begin : em_range_end + 1]
+        current_variance = data.current_variance[i][em_range_begin : em_range_end + 1]
 
-        reinv_distribution, reinv_distribution_cov = inverter.invert(current, current_variance)
+        reinv_distribution, reinv_distribution_cov = inverter.invert(
+            current, current_variance
+        )
 
         # Do something with the result. Now just prints first 5 nd points
         print(f"{begin_time} {end_time} {opmode} {polarity} {reinv_distribution[:5]}")

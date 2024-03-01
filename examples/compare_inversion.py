@@ -11,7 +11,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent / "../src"))
 from airel import pyspect
 
 inverter = pyspect.inversion.load_inverter(
-    open("inverters/v14.1-hrnd-elm25-chv/ions-pos-v14.1-hrnd-elm25-chv.inverter"))
+    open("inverters/v14.1-hrnd-elm25-chv/ions-pos-v14.1-hrnd-elm25-chv.inverter")
+)
 
 data = pyspect.datafiles.RecordsFiles()
 data.load("data/20220524-block.records")
@@ -32,13 +33,18 @@ for i in range(data.count()):
     if data.opmode[i] != "ions":
         continue
 
-    current = data.current[i][em_range_begin:em_range_end + 1]
-    current_variance = data.current_variance[i][em_range_begin:em_range_end + 1]
+    current = data.current[i][em_range_begin : em_range_end + 1]
+    current_variance = data.current_variance[i][em_range_begin : em_range_end + 1]
 
-    reinv_distribution, reinv_distribution_cov = inverter.invert(current, current_variance)
+    reinv_distribution, reinv_distribution_cov = inverter.invert(
+        current, current_variance
+    )
 
     spectrum_index = bisect.bisect_left(spectrum.begin_time, data.begin_time[i])
-    if spectrum_index != len(spectrum.begin_time) and spectrum.begin_time[spectrum_index] == data.begin_time[i]:
+    if (
+        spectrum_index != len(spectrum.begin_time)
+        and spectrum.begin_time[spectrum_index] == data.begin_time[i]
+    ):
         orig_distribution = np.asarray(spectrum.value[spectrum_index])
 
         sqdiff = math.sqrt(((orig_distribution - reinv_distribution) ** 2).mean())

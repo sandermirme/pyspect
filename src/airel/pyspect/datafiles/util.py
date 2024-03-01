@@ -41,7 +41,8 @@ def parse_spectops_time(s):
         minute=int(s[14:16]),
         second=int(s[17:19]),
         microsecond=int(s[20:26]),
-        tzinfo=tz)
+        tzinfo=tz,
+    )
 
     return t
 
@@ -59,6 +60,7 @@ def parse_spectops_time_notz(s):
         minute=int(s[14:16]),
         second=int(s[17:19]),
         microsecond=int(s[20:26]),
-        tzinfo=datetime.timezone.utc)
+        tzinfo=datetime.timezone.utc,
+    )
 
     return t
