@@ -1,6 +1,7 @@
 import dataclasses
 import datetime
 import hashlib
+import io
 import warnings
 from dataclasses import dataclass
 from enum import Enum
@@ -11,11 +12,6 @@ import yaml
 
 from .util import float_or_missing, parse_spectops_time
 from ..fractions import nd_fraction_matrix
-
-try:
-    import pandas as pd
-except ModuleNotFoundError:
-    warnings.warn("Pandas not found. Dataframe conversion not available.")
 
 nan = float("nan")
 
@@ -124,7 +120,7 @@ class RecordsFiles:
         header_lines: list[str] = []
         linereader: Union[Callable[[int, str], None], None] = None
 
-        if isinstance(sourcefile, str):
+        if not isinstance(sourcefile, io.IOBase):
             sourcefile = open(sourcefile)
 
         for line_number, line in enumerate(sourcefile):
@@ -493,11 +489,14 @@ class RecordsFiles:
         self.begin_time = [parse_spectops_time(t) for t in self.begin_time_str]
         self.end_time = [parse_spectops_time(t) for t in self.end_time_str]
 
-    def to_dataframe(self):
+    def to_dict(self):
+        if self.begin_time is None or self.end_time is None:
+            self.parse_times()
+
         all_field_data = {
             "begin_time": self.begin_time,
             "end_time": self.end_time,
-            "opmode": pd.Series(self.opmode, dtype="category"),
+            "opmode": self.opmode,
         }
 
         if self.electrometer_groups:
@@ -526,7 +525,39 @@ class RecordsFiles:
                 ]
 
         all_field_data.update(self.field_data)
-        return pd.DataFrame.from_dict(all_field_data)
+        return all_field_data
+
+    def to_pandas(self):
+        try:
+            import pandas as pd
+        except ModuleNotFoundError:
+            raise NotImplementedError("Pandas library not found")
+
+        data = self.to_dict()
+        data["opmode"] = pd.Series(self.opmode, dtype="category")
+
+        return pd.DataFrame.from_dict(data)
+
+    def to_polars(self, tz):
+        try:
+            import polars as pl
+        except ModuleNotFoundError:
+            raise NotImplementedError("Polars library not found")
+
+        data = self.to_dict()
+        data["opmode"] = pl.Series(self.opmode, dtype=pl.Categorical)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore", category=pl.exceptions.TimeZoneAwareConstructorWarning
+            )
+            df = pl.DataFrame(data)
+
+        if tz is not None:
+            df.replace("begin_time", df["begin_time"].dt.convert_time_zone(tz))
+            df.replace("end_time", df["end_time"].dt.convert_time_zone(tz))
+
+        return df
 
 
 class ParsingError(Exception):
