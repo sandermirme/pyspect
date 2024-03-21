@@ -2,6 +2,7 @@ import dataclasses
 import datetime
 import hashlib
 import io
+import pathlib
 import warnings
 from dataclasses import dataclass
 from enum import Enum
@@ -115,7 +116,7 @@ class RecordsFiles:
 
         self.warnings = []
 
-    def load(self, sourcefile: Union[str, IO[str]]):
+    def load(self, sourcefile: Union[str, pathlib.Path, IO[str]]):
         is_in_header = False
         header_lines: list[str] = []
         linereader: Union[Callable[[int, str], None], None] = None
@@ -527,6 +528,43 @@ class RecordsFiles:
         all_field_data.update(self.field_data)
         return all_field_data
 
+    def to_dict_emvec(self):
+        if self.begin_time is None or self.end_time is None:
+            self.parse_times()
+
+        all_field_data = {
+            "begin_time": self.begin_time,
+            "end_time": self.end_time,
+            "opmode": self.opmode,
+        }
+
+        if self.electrometer_groups:
+            groups = self.electrometer_groups
+        else:
+            groups = {"": (0, self.num_electrometers)}
+
+        for name, (first, last) in groups.items():
+            if len(name) != 0:
+                name += "_"
+            all_field_data[f"{name}electrometer_current"] = [
+                x[first : last + 1] for x in self.current
+            ]
+
+            all_field_data[f"{name}electrometer_raw_current"] = [
+                x[first : last + 1] for x in self.raw_current
+            ]
+
+            all_field_data[f"{name}electrometer_current_variance"] = [
+                x[first : last + 1] for x in self.current_variance
+            ]
+
+            all_field_data[f"{name}electrometer_voltage"] = [
+                x[first : last + 1] for x in self.electrometer_voltage
+            ]
+
+        all_field_data.update(self.field_data)
+        return all_field_data
+
     def to_pandas(self):
         try:
             import pandas as pd
@@ -544,7 +582,7 @@ class RecordsFiles:
         except ModuleNotFoundError:
             raise NotImplementedError("Polars library not found")
 
-        data = self.to_dict()
+        data = self.to_dict_emvec()
         data["opmode"] = pl.Series(self.opmode, dtype=pl.Categorical)
 
         with warnings.catch_warnings():
