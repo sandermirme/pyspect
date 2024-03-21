@@ -171,7 +171,7 @@ class Inverter:
         return intermResult, Vcinv, vparand
 
     def invert(
-        self, in_sig: numpy.ndarray, in_var: numpy.ndarray
+        self, in_sig: numpy.ndarray, in_var: numpy.ndarray, no_post=False
     ) -> (numpy.ndarray, numpy.ndarray):
         self.prepare()
 
@@ -229,10 +229,7 @@ class Inverter:
 
         # print "final values", fmt(values)
 
-        # Vector result_values
-        # BandedMatrix result_covariances
-
-        if self.post_matrix is not None:
+        if not (self.post_matrix is None or no_post):
             if self.post_matrix.shape[0] != len(values):
                 raise InversionException(
                     "Post-transform matrix size does not match intermediate vector size"
@@ -337,7 +334,7 @@ def save_inverter(
     return doc
 
 
-def load_inverter(stream):
+def load_inverter(stream) -> Inverter:
     doc = yaml.safe_load(stream)
     inverter = Inverter()
     for key, fn in _INVERTER_ATTRIBUTES:
