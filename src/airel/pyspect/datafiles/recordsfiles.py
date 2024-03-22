@@ -528,7 +528,23 @@ class RecordsFiles:
         all_field_data.update(self.field_data)
         return all_field_data
 
-    def to_dict_emvec(self):
+    def to_pandas(self):
+        try:
+            import pandas as pd
+        except ModuleNotFoundError:
+            raise NotImplementedError("Pandas library not found")
+
+        data = self.to_dict()
+        data["opmode"] = pd.Series(self.opmode, dtype="category")
+
+        return pd.DataFrame.from_dict(data)
+
+    def to_polars(self, tz):
+        try:
+            import polars as pl
+        except ModuleNotFoundError:
+            raise NotImplementedError("Polars library not found")
+
         if self.begin_time is None or self.end_time is None:
             self.parse_times()
 
@@ -537,6 +553,8 @@ class RecordsFiles:
             "end_time": self.end_time,
             "opmode": self.opmode,
         }
+
+        schema = {"opmode": pl.Categorical}
 
         if self.electrometer_groups:
             groups = self.electrometer_groups
@@ -562,38 +580,28 @@ class RecordsFiles:
                 x[first : last + 1] for x in self.electrometer_voltage
             ]
 
+            schema[f"{name}electrometer_current"] = pl.Array(float, last - first + 1)
+            schema[f"{name}electrometer_raw_current"] = pl.Array(
+                float, last - first + 1
+            )
+            schema[f"{name}electrometer_current_variance"] = pl.Array(
+                float, last - first + 1
+            )
+            schema[f"{name}electrometer_voltage"] = pl.Array(float, last - first + 1)
+
         all_field_data.update(self.field_data)
-        return all_field_data
-
-    def to_pandas(self):
-        try:
-            import pandas as pd
-        except ModuleNotFoundError:
-            raise NotImplementedError("Pandas library not found")
-
-        data = self.to_dict()
-        data["opmode"] = pd.Series(self.opmode, dtype="category")
-
-        return pd.DataFrame.from_dict(data)
-
-    def to_polars(self, tz):
-        try:
-            import polars as pl
-        except ModuleNotFoundError:
-            raise NotImplementedError("Polars library not found")
-
-        data = self.to_dict_emvec()
-        data["opmode"] = pl.Series(self.opmode, dtype=pl.Categorical)
 
         with warnings.catch_warnings():
             warnings.simplefilter(
                 "ignore", category=pl.exceptions.TimeZoneAwareConstructorWarning
             )
-            df = pl.DataFrame(data)
+            df = pl.DataFrame(all_field_data, schema_overrides=schema)
 
         if tz is not None:
             df.replace("begin_time", df["begin_time"].dt.convert_time_zone(tz))
             df.replace("end_time", df["end_time"].dt.convert_time_zone(tz))
+
+        df.sort("begin_time")
 
         return df
 

@@ -7,3 +7,5 @@ from .recordsfiles import (
     Field,
     FieldType,
 )
+
+from .conversion import records_to_parquet
