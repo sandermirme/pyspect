@@ -6,7 +6,7 @@ authors = [
 ]
 description = "A Python package to help with processing data from NAIS, EAS, CIC and other instruments produced by Airel OÜ"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -51,10 +51,11 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 numpy = "^1.22.0"
 pyyaml = "^6.0"
 scipy = "^1.8.0"
+tqdm = "^4.66.2"
 polars = { version = "^0.20", optional = true }
 pandas = { version = "^2.2", optional = true }
 

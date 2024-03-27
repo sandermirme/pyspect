@@ -2,6 +2,7 @@ import datetime
 import json
 import pathlib
 import re
+import tqdm
 
 from .. import datafiles
 
@@ -44,6 +45,8 @@ def records_to_parquet(
 
     files = sorted(list(pathlib.Path(in_dir).iterdir()))
 
+    updated_files = []
+
     for f in files:
         match = FILENAME_RE.match(f.name)
         if not match or match[2] != averaging:
@@ -71,6 +74,10 @@ def records_to_parquet(
             update = True
 
         if update:
+            updated_files.append((f, outfile))
+
+    if updated_files:
+        for f, outfile in tqdm.tqdm(updated_files):
             r = datafiles.RecordsFiles()
             r.load(f)
             df = r.to_polars(tz="UTC")
